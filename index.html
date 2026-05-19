@@ -502,27 +502,39 @@ body {
       </div>
     </div>
 
-    <!-- Persistence: save status + backup/restore -->
+    <!-- Persistence panel -->
     <div class="panel">
-      <div class="info-rows">
-        <div class="info-row" style="padding:.55rem .9rem; flex-direction:column; gap:.45rem; border-bottom:none;">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <span id="saveStatus" style="font-size:.7rem;color:var(--text-3);font-weight:600;">Checking storage…</span>
-          </div>
-          <div style="display:flex;gap:.4rem;">
-            <button onclick="exportBackup()"
-              style="flex:1;padding:.38rem .5rem;background:var(--blue-lt);color:var(--blue);border:1px solid var(--blue-mid);border-radius:7px;font-size:.72rem;font-weight:600;cursor:pointer;">
-              💾 Backup
-            </button>
-            <label style="flex:1;padding:.38rem .5rem;background:var(--green-lt);color:var(--green);border:1px solid var(--green-mid);border-radius:7px;font-size:.72rem;font-weight:600;cursor:pointer;text-align:center;">
-              📂 Restore
-              <input type="file" accept=".json" style="display:none" onchange="importBackup(this.files[0]);this.value=''">
-            </label>
-          </div>
-          <div style="font-size:.65rem;color:var(--text-3);line-height:1.5;">
-            Data auto-saves to your browser. Use <strong>Backup</strong> to save a JSON file, and <strong>Restore</strong> to reload it if browser storage is ever cleared.
-          </div>
+      <div style="padding:.75rem .9rem;display:flex;flex-direction:column;gap:.55rem;">
+
+        <span id="saveStatus" style="font-size:.7rem;font-weight:600;color:var(--text-3);">Checking storage…</span>
+
+        <div style="font-size:.73rem;font-weight:700;color:var(--text-1);">📲 Open on any device</div>
+        <div style="font-size:.67rem;color:var(--text-3);line-height:1.5;margin-top:-.25rem;">
+          After uploading, copy this link and open it on any phone, tablet or browser — your data travels with the URL.
         </div>
+        <div style="display:flex;gap:.35rem;align-items:center;">
+          <input id="shareUrlInput" readonly placeholder="upload a receipt first"
+            style="flex:1;min-width:0;padding:.35rem .6rem;border:1.5px solid var(--border2);border-radius:7px;font-size:.65rem;color:var(--text-2);background:var(--bg);outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;"
+            onclick="this.select()">
+          <button onclick="copyShareUrl()"
+            style="flex-shrink:0;padding:.35rem .8rem;background:var(--blue);color:#fff;border:none;border-radius:7px;font-size:.73rem;font-weight:700;cursor:pointer;white-space:nowrap;">
+            Copy
+          </button>
+        </div>
+
+        <div style="height:1px;background:var(--border);margin:.1rem 0;"></div>
+        <div style="font-size:.67rem;color:var(--text-3);">Or save a JSON backup:</div>
+        <div style="display:flex;gap:.4rem;">
+          <button onclick="exportBackup()"
+            style="flex:1;padding:.35rem .4rem;background:var(--bg);color:var(--text-2);border:1.5px solid var(--border2);border-radius:7px;font-size:.7rem;font-weight:600;cursor:pointer;">
+            💾 Download backup
+          </button>
+          <label style="flex:1;padding:.35rem .4rem;background:var(--bg);color:var(--text-2);border:1.5px solid var(--border2);border-radius:7px;font-size:.7rem;font-weight:600;cursor:pointer;text-align:center;">
+            📂 Restore
+            <input type="file" accept=".json" style="display:none" onchange="importBackup(this.files[0]);this.value=''">
+          </label>
+        </div>
+
       </div>
     </div>
 
