@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TM47 · 90-Day Report Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root {
+  --bg:       #F5F7FA;
+  --white:    #FFFFFF;
+  --border:   #DDE3ED;
+  --border2:  #B8C4D4;
+
+  --text-1:   #111827;
+  --text-2:   #4B5563;
+  --text-3:   #9CA3AF;
+
+  --blue:     #2563EB;
+  --blue-lt:  #EFF6FF;
+  --blue-mid: #DBEAFE;
+
+  --green:    #059669;
+  --green-lt: #ECFDF5;
+  --green-mid:#A7F3D0;
+
+  --amber:    #D97706;
+  --amber-lt: #FFFBEB;
+  --amber-mid:#FDE68A;
+
+  --red:      #DC2626;
+  --red-lt:   #FEF2F2;
+  --red-mid:  #FECACA;
+
+  --purple:   #7C3AED;
+  --purple-lt:#F5F3FF;
+
+  --radius:    14px;
+  --radius-sm: 10px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --shadow:    0 4px 16px rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.04);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text-1);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── TOPBAR ─────────────────────────────── */
+.topbar {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  height: 58px;
+  display: flex; align-items: center;
+  padding: 0 1.75rem;
+  gap: 1rem;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: var(--shadow-sm);
+}
+
+.flag {
+  display: flex; flex-direction: column; gap: 2px; flex-shrink: 0;
+}
+.flag i { display: block; width: 24px; border-radius: 1px; }
+
+.brand h1 {
+  font-size: .95rem; font-weight: 700;
+  color: var(--text-1); letter-spacing: -.02em;
+}
+.brand p {
+  font-size: .68rem; color: var(--text-3);
+  letter-spacing: .04em; text-transform: uppercase; margin-top: 1px;
+}
+
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: .75rem; }
+
+.clock-chip {
+  display: flex; align-items: center; gap: .5rem;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 999px; padding: .3rem .9rem;
+  font-size: .78rem; color: var(--text-2);
+}
+.clock-chip strong { color: var(--text-1); font-variant-numeric: tabular-nums; }
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green); flex-shrink: 0;
+  animation: blink 2s ease infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── LAYOUT ─────────────────────────────── */
+.layout {
+  display: grid;
+  grid-template-columns: 290px 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  max-width: 1380px;
+  margin: 0 auto;
+}
+
+/* ── SIDEBAR ─────────────────────────────── */
+.sidebar { display: flex; flex-direction: column; gap: 1rem; }
+
+.panel {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+/* Upload */
+.drop-zone {
+  position: relative; cursor: pointer;
+  margin: 1rem;
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 1.75rem 1rem;
+  text-align: center;
+  transition: all .18s;
+  background: var(--bg);
+}
+.drop-zone:hover, .drop-zone.over {
+  border-color: var(--blue);
+  background: var(--blue-lt);
+}
+.drop-zone input {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.dz-icon {
+  width: 44px; height: 44px; margin: 0 auto .75rem;
+  background: var(--blue-mid); border-radius: 11px;
+  display: flex; align-items: center; justify-content: center; font-size: 1.3rem;
+}
+.drop-zone h3 { font-size: .88rem; font-weight: 600; color: var(--text-1); }
+.drop-zone p  { font-size: .73rem; color: var(--text-3); margin-top: .25rem; }
+.dz-btn {
+  display: inline-flex; align-items: center; gap: .3rem;
+  margin-top: .75rem; padding: .38rem .9rem;
+  background: var(--blue); color: #fff;
+  border-radius: 999px; font-size: .75rem; font-weight: 600;
+  border: none; cursor: pointer; transition: opacity .15s;
+}
+.dz-btn:hover { opacity: .88; }
+
+/* Processing */
+.proc { display: none; align-items: center; gap: .5rem; padding: .5rem 1rem; font-size: .78rem; color: var(--text-3); }
+.spin { width: 13px; height: 13px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .65s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Loaded list */
+.loaded-list { display: flex; flex-direction: column; }
+.ll-divider { height: 1px; background: var(--border); margin: 0 1rem; }
+.ll-item {
+  display: flex; align-items: center; gap: .7rem;
+  padding: .65rem 1rem; transition: background .12s;
+}
+.ll-item:hover { background: var(--bg); }
+.ll-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.ll-name { font-size: .81rem; font-weight: 600; color: var(--text-1); }
+.ll-meta { font-size: .69rem; color: var(--text-3); margin-top: 1px; }
+.ll-ok   { margin-left: auto; font-size: .75rem; color: var(--green); font-weight: 600; }
+
+/* Info panel */
+.info-rows { display: flex; flex-direction: column; }
+.info-row {
+  display: flex; gap: .65rem; align-items: flex-start;
+  padding: .7rem 1rem; border-bottom: 1px solid var(--border); font-size: .76rem; color: var(--text-2); line-height: 1.55;
+}
+.info-row:last-child { border-bottom: none; }
+.ir-icon { flex-shrink: 0; font-size: .9rem; margin-top: 1px; }
+.ir-lbl  { font-size: .65rem; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .15rem; }
+
+/* Clear */
+.clear-btn {
+  width: 100%; padding: .6rem; cursor: pointer;
+  background: transparent; border: 1px solid var(--red-mid);
+  border-radius: var(--radius-sm); color: var(--red);
+  font-size: .78rem; font-weight: 600; transition: background .15s;
+}
+.clear-btn:hover { background: var(--red-lt); }
+
+/* ── DASHBOARD ───────────────────────────── */
+.dashboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; align-content: start; }
+.dashboard .summary { grid-column: 1 / -1; }
+.dashboard .empty   { grid-column: 1 / -1; }
+
+/* Empty */
+.empty {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 5rem 2rem;
+  text-align: center; box-shadow: var(--shadow-sm);
+}
+.empty-ico {
+  width: 60px; height: 60px; margin: 0 auto 1rem;
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  border-radius: 16px; display: flex; align-items: center;
+  justify-content: center; font-size: 1.7rem;
+}
+.empty h3 { font-size: 1rem; font-weight: 600; margin-bottom: .4rem; }
+.empty p  { font-size: .8rem; color: var(--text-3); line-height: 1.6; max-width: 260px; margin: 0 auto; }
+
+/* Summary strip */
+.summary {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.s-cell {
+  padding: 1rem 1.2rem; text-align: center;
+  border-right: 1px solid var(--border); transition: background .12s;
+}
+.s-cell:last-child { border-right: none; }
+.s-cell:hover { background: var(--bg); }
+.s-num { font-size: 2rem; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
+.s-lbl { font-size: .65rem; color: var(--text-3); text-transform: uppercase; letter-spacing: .07em; margin-top: .3rem; }
+
+/* ── PERSON CARD ─────────────────────────── */
+.p-card {
+  background: var(--white);
+  border: 1.5px solid var(--border2);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow .2s, border-color .2s;
+  display: flex; flex-direction: column;
+}
+.p-card:hover { box-shadow: var(--shadow); border-color: #8FA3BB; }
+
+.p-bar { height: 3px; flex-shrink: 0; }
+
+/* Card header */
+.p-head {
+  padding: .7rem .9rem;
+  display: flex; align-items: center; gap: .65rem;
+  border-bottom: 1px solid var(--border);
+}
+.avatar {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .8rem; font-weight: 800; color: #fff;
+}
+.p-name     { font-size: .82rem; font-weight: 700; color: var(--text-1); line-height: 1.2; }
+.p-passport { font-size: .65rem; color: var(--text-3); margin-top: 1px; }
+.p-pill-wrap { margin-left: auto; flex-shrink: 0; }
+
+/* Status pill */
+.pill {
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .25rem .7rem; border-radius: 999px;
+  font-size: .67rem; font-weight: 700;
+  border: 1.5px solid transparent; white-space: nowrap;
+}
+.pill-ok     { background: var(--green-lt); color: var(--green);  border-color: var(--green-mid); }
+.pill-window { background: var(--green-lt); color: var(--green);  border-color: var(--green); animation: glow-g 2s infinite; }
+.pill-alert  { background: var(--amber-lt); color: var(--amber);  border-color: var(--amber-mid); animation: glow-a 2s infinite; }
+.pill-urgent { background: var(--red-lt);   color: var(--red);    border-color: var(--red-mid);  animation: glow-r 1.5s infinite; }
+.pill-over   { background: var(--red-lt);   color: var(--red);    border-color: var(--red); }
+
+@keyframes glow-g { 0%,100%{box-shadow:0 0 0 0 rgba(5,150,105,.2)} 50%{box-shadow:0 0 0 5px rgba(5,150,105,0)} }
+@keyframes glow-a { 0%,100%{box-shadow:0 0 0 0 rgba(217,119,6,.2)} 50%{box-shadow:0 0 0 5px rgba(217,119,6,0)} }
+@keyframes glow-r { 0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.2)} 50%{box-shadow:0 0 0 5px rgba(220,38,38,0)} }
+
+/* Card body */
+.p-body { padding: .7rem .9rem; flex: 1; display: flex; flex-direction: column; gap: .6rem; }
+
+/* Countdown — compact single row */
+.cd-banner {
+  border-radius: 8px; padding: .55rem .75rem;
+  display: flex; align-items: center; gap: .6rem;
+  border: 1px solid transparent;
+}
+.cd-ok     { background: var(--blue-lt);  border-color: var(--blue-mid); }
+.cd-window { background: var(--green-lt); border-color: var(--green-mid); }
+.cd-alert  { background: var(--amber-lt); border-color: var(--amber-mid); }
+.cd-urgent { background: var(--red-lt);   border-color: var(--red-mid); }
+.cd-over   { background: var(--red-lt);   border-color: var(--red); }
+
+.cd-ico  { font-size: 1.1rem; flex-shrink: 0; }
+.cd-big  { font-size: 1.1rem; font-weight: 800; letter-spacing: -.02em; line-height: 1; }
+.cd-sub  { font-size: .65rem; color: var(--text-2); margin-top: .12rem; }
+
+/* Slim timeline */
+.tl-wrap { }
+.tl-labels {
+  display: flex; justify-content: space-between;
+  font-size: .6rem; color: var(--text-3); margin-bottom: .35rem;
+}
+.tl-track {
+  height: 8px; border-radius: 999px;
+  background: var(--border); position: relative; overflow: visible;
+}
+.tl-zones { position: absolute; inset: 0; display: flex; border-radius: 999px; overflow: hidden; }
+.z-s { flex: 75; background: #BFDBFE; }
+.z-w { flex: 8;  background: #6EE7B7; }
+.z-l { flex: 7;  background: #FCA5A5; }
+
+.tl-pin {
+  position: absolute; top: -4px;
+  width: 3px; height: 16px;
+  background: var(--text-1); border-radius: 2px;
+  transform: translateX(-50%);
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+.tl-pin::after {
+  content: 'Today'; position: absolute; top: 18px; left: 50%;
+  transform: translateX(-50%);
+  font-size: .58rem; font-weight: 600; color: var(--text-3); white-space: nowrap;
+}
+
+/* 2×2 key dates */
+.dates-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: .5rem; margin-top: .1rem;
+}
+.d-chip {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: .5rem .65rem;
+}
+.d-chip.c-green  { background: var(--green-lt); border-color: #6EE7B7; }
+.d-chip.c-amber  { background: var(--amber-lt); border-color: var(--amber-mid); }
+.d-chip.c-red    { background: var(--red-lt);   border-color: var(--red-mid); }
+
+.dc-lbl { font-size: .58rem; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; }
+.dc-val { font-size: .79rem; font-weight: 700; color: var(--text-1); margin-top: .18rem; }
+.dc-sub { font-size: .63rem; color: var(--text-3); margin-top: .08rem; }
+
+/* Card footer */
+.p-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .5rem .9rem; border-top: 1px solid var(--border);
+  background: var(--bg); flex-shrink: 0; gap: .4rem; flex-wrap: wrap;
+}
+.p-ref  { font-size: .58rem; color: var(--text-3); font-family: monospace; }
+.p-foot-actions { display: flex; gap: .35rem; align-items: center; flex-wrap: wrap; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: .25rem;
+  padding: .32rem .75rem; border-radius: 999px;
+  font-size: .7rem; font-weight: 600; cursor: pointer;
+  border: 1.5px solid transparent; transition: all .14s; white-space: nowrap;
+}
+.btn-purple { background: var(--purple-lt); color: var(--purple); border-color: #C4B5FD; }
+.btn-purple:hover { background: #EDE9FE; }
+.btn-green  { background: var(--green-lt); color: var(--green); border-color: var(--green-mid); }
+.btn-green:hover { background: #D1FAE5; }
+.btn-blue   { background: var(--blue-lt); color: var(--blue); border-color: var(--blue-mid); }
+.btn-blue:hover { background: var(--blue-mid); }
+.btn-ghost  { background: transparent; color: var(--text-2); border-color: var(--border2); }
+.btn-ghost:hover  { background: var(--red-lt); color: var(--red); border-color: var(--red-mid); }
+
+.portal-link {
+  display: inline-flex; align-items: center; gap: .2rem;
+  color: var(--blue); font-size: .68rem; font-weight: 600;
+  text-decoration: none; padding: .25rem .6rem;
+  background: var(--blue-lt); border: 1px solid var(--blue-mid);
+  border-radius: 999px; transition: background .12s; white-space: nowrap;
+}
+.portal-link:hover { background: var(--blue-mid); }
+
+/* ── TOASTS ─────────────────────────────── */
+.toast-stack {
+  position: fixed; top: 66px; right: 1.25rem;
+  display: flex; flex-direction: column; gap: .45rem;
+  z-index: 999; pointer-events: none;
+}
+.toast {
+  display: flex; align-items: flex-start; gap: .7rem;
+  padding: .85rem 1rem; background: var(--white);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  box-shadow: var(--shadow); max-width: 290px;
+  pointer-events: all; animation: tin .25s ease;
+}
+.t-bar { width: 3px; align-self: stretch; border-radius: 2px; flex-shrink: 0; }
+.t-ico { font-size: 1rem; flex-shrink: 0; }
+.t-title { font-size: .79rem; font-weight: 700; color: var(--text-1); }
+.t-body  { font-size: .71rem; color: var(--text-2); margin-top: .12rem; line-height: 1.4; }
+.t-x { margin-left: auto; background: none; border: none; cursor: pointer; color: var(--text-3); font-size: .8rem; padding: 0; flex-shrink: 0; }
+.t-x:hover { color: var(--text-1); }
+@keyframes tin { from{transform:translateX(110%);opacity:0} to{transform:translateX(0);opacity:1} }
+
+/* ── MISC ────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+@media (max-width: 1100px) {
+  .dashboard { grid-template-columns: 1fr; }
+}
+@media (max-width: 840px) {
+  .layout { grid-template-columns: 1fr; }
+  .summary { grid-template-columns: repeat(2,1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="toast-stack" id="toasts"></div>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="flag">
+    <i style="height:4px;background:#C8102E;"></i>
+    <i style="height:4px;background:#fff;border:1px solid #eee;"></i>
+    <i style="height:7px;background:#003087;"></i>
+    <i style="height:4px;background:#fff;border:1px solid #eee;"></i>
+    <i style="height:4px;background:#C8102E;"></i>
+  </div>
+  <div class="brand">
+    <h1>TM47 · 90-Day Report Tracker</h1>
+    <p>Thailand Immigration · Online Filing Manager</p>
+  </div>
+  <div class="topbar-right">
+    <div class="clock-chip">
+      <div class="live-dot"></div>
+      <strong id="clockTime">--:--:--</strong>
+      <span>Bangkok</span>
+    </div>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <div class="panel">
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".pdf" multiple>
+        <div class="dz-icon">📋</div>
+        <h3>Upload TM47 Receipts</h3>
+        <p>Drag & drop PDFs, or click to browse</p>
+        <div class="dz-btn">Choose files</div>
+      </div>
+      <div class="proc" id="procRow"><div class="spin"></div><span>Reading PDF…</span></div>
+      <div class="loaded-list" id="loadedList"></div>
+    </div>
+
+    <div class="panel">
+      <div class="info-rows">
+        <div class="info-row">
+          <span class="ir-icon">🟢</span>
+          <div>
+            <div class="ir-lbl">Online Window</div>
+            File from <strong>15 days</strong> to <strong>7 days</strong> before due date
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="ir-icon">🔔</span>
+          <div>
+            <div class="ir-lbl">Alert Trigger</div>
+            <strong>17 days</strong> before due — window opens in 2 days
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="ir-icon">🔴</span>
+          <div>
+            <div class="ir-lbl">After Closing</div>
+            In-person immigration visit · Fine up to <strong>฿5,000</strong>
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="ir-icon">🔗</span>
+          <div>
+            <div class="ir-lbl">Filing Portal</div>
+            <a href="https://extranet.immigration.go.th/fn24online/" target="_blank"
+               style="color:var(--blue);font-size:.75rem;">extranet.immigration.go.th ↗</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Settings -->
+    <div class="panel">
+      <div class="info-rows">
+        <div class="info-row" style="padding:.6rem .9rem">
+          <span class="ir-icon">📧</span>
+          <div style="flex:1">
+            <div class="ir-lbl">Email alerts to</div>
+            <input id="settingEmail" type="email" placeholder="you@example.com"
+              style="width:100%;margin-top:.3rem;padding:.32rem .6rem;border:1px solid var(--border);border-radius:6px;font-size:.75rem;color:var(--text-1);background:var(--bg);outline:none;"
+              oninput="saveSettings()" />
+          </div>
+        </div>
+        <div class="info-row" style="padding:.6rem .9rem;border-bottom:none">
+          <span class="ir-icon">📱</span>
+          <div style="flex:1">
+            <div class="ir-lbl">SMS to (with country code)</div>
+            <input id="settingPhone" type="tel" placeholder="+66812345678"
+              style="width:100%;margin-top:.3rem;padding:.32rem .6rem;border:1px solid var(--border);border-radius:6px;font-size:.75rem;color:var(--text-1);background:var(--bg);outline:none;"
+              oninput="saveSettings()" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Persistence: save status + backup/restore -->
+    <div class="panel">
+      <div class="info-rows">
+        <div class="info-row" style="padding:.55rem .9rem; flex-direction:column; gap:.45rem; border-bottom:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span id="saveStatus" style="font-size:.7rem;color:var(--text-3);font-weight:600;">Checking storage…</span>
+          </div>
+          <div style="display:flex;gap:.4rem;">
+            <button onclick="exportBackup()"
+              style="flex:1;padding:.38rem .5rem;background:var(--blue-lt);color:var(--blue);border:1px solid var(--blue-mid);border-radius:7px;font-size:.72rem;font-weight:600;cursor:pointer;">
+              💾 Backup
+            </button>
+            <label style="flex:1;padding:.38rem .5rem;background:var(--green-lt);color:var(--green);border:1px solid var(--green-mid);border-radius:7px;font-size:.72rem;font-weight:600;cursor:pointer;text-align:center;">
+              📂 Restore
+              <input type="file" accept=".json" style="display:none" onchange="importBackup(this.files[0]);this.value=''">
+            </label>
+          </div>
+          <div style="font-size:.65rem;color:var(--text-3);line-height:1.5;">
+            Data auto-saves to your browser. Use <strong>Backup</strong> to save a JSON file, and <strong>Restore</strong> to reload it if browser storage is ever cleared.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="clearWrap" style="display:none">
+      <button class="clear-btn" onclick="clearAll()">Remove all records</button>
+    </div>
+
+  </aside>
+
+  <!-- DASHBOARD -->
+  <main class="dashboard" id="dashboard">
+    <div class="empty">
+      <div class="empty-ico">📋</div>
+      <h3>No receipts loaded yet</h3>
+      <p>Upload your TM47 notification PDFs to see your filing windows and deadlines.</p>
+    </div>
+  </main>
+
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ── Stable key — no version suffix so browser-reloads never lose data ──
+const STORE_KEY  = 'tm47_data';
+const ALERTS_KEY = 'tm47_alerts';
+
+// Migrate from any old versioned keys
+(function migrate(){
+  for (const old of ['tm47v4_persons','tm47v3_persons','tm47v2_persons']) {
+    const v = localStorage.getItem(old);
+    if (v && !localStorage.getItem(STORE_KEY)) {
+      localStorage.setItem(STORE_KEY, v); localStorage.removeItem(old);
+    }
+  }
+})();
+
+let persons     = JSON.parse(localStorage.getItem(STORE_KEY)  || '[]');
+let alertsFired = new Set(JSON.parse(localStorage.getItem(ALERTS_KEY) || '[]'));
+
+const COLORS = ['#2563EB','#C8102E','#059669','#D97706','#7C3AED','#0891B2','#EA580C'];
+
+const MONTHS = {
+  jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11,
+  january:0,february:1,march:2,april:3,june:5,july:6,august:7,
+  september:8,october:9,november:10,december:11
+};
+
+function parseDate(s) {
+  const m = String(s).match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+  if (!m) return null;
+  const mo = MONTHS[m[2].toLowerCase()];
+  if (mo === undefined) return null;
+  return new Date(parseInt(m[3]), mo, parseInt(m[1]));
+}
+function fmt(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+}
+function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function today0(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+
+async function pdfToText(file) {
+  const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  let out = '';
+  for (let i=1;i<=pdf.numPages;i++){
+    const page = await pdf.getPage(i);
+    const ct   = await page.getTextContent();
+    const byY  = {};
+    for (const item of ct.items){
+      const y = Math.round(item.transform[5]);
+      (byY[y]=byY[y]||[]).push(item.str);
+    }
+    Object.keys(byY).map(Number).sort((a,b)=>b-a).forEach(y=>out+=byY[y].join(' ')+'\n');
+  }
+  return out;
+}
+
+function parseTm47(text) {
+  // ── Name + passport: parse line-by-line so "I TITLE" prefix is excluded ──
+  // Each word in the name must be 2+ uppercase letters (excludes lone "I")
+  let name='', passport='';
+  for (const line of text.split('\n')) {
+    const t = line.trim();
+    const m = t.match(/^([A-Z]{2,}(?:\s+[A-Z]{2,})*)\s+\(([A-Z]{1,2}\d{5,8})\)/);
+    if (m && !['FOR OFFICIAL','NATIONALITY','HAVE RECEIVED','THIS IS','RECEIPT'].some(x=>m[1].includes(x))) {
+      name = m[1]; passport = m[2]; break;
+    }
+  }
+  const s = text.replace(/\s+/g,' ');
+  let nextDate=null;
+  const du=s.match(/(\d{1,2}\s+[A-Za-z]+\s+\d{4})\s*\(?ค\.ศ\./);
+  if(du)nextDate=parseDate(du[1]);
+  if(!nextDate){const ag=s.match(/AGAIN\s+ON\s+[\s\S]{0,10}?(\d{1,2}\s+[A-Za-z]+\s+\d{4})/i);if(ag)nextDate=parseDate(ag[1]);}
+  let lastDate=null;
+  const la=s.match(/IND:INDIAN\s+(\d{1,2}\s+[A-Za-z]+\s+\d{4})/);
+  if(la)lastDate=parseDate(la[1]);
+  if(!lastDate&&nextDate)lastDate=addDays(nextDate,-90);
+  const rf=s.match(/TM47-[\d-]+/);
+  return{name,passport,lastDate,nextDate,refNum:rf?rf[0]:''};
+}
+
+// ── Notification settings ─────────────────
+function saveSettings(){
+  localStorage.setItem('tm47v4_email', document.getElementById('settingEmail').value);
+  localStorage.setItem('tm47v4_phone', document.getElementById('settingPhone').value);
+}
+function loadSettings(){
+  document.getElementById('settingEmail').value = localStorage.getItem('tm47v4_email')||'';
+  document.getElementById('settingPhone').value = localStorage.getItem('tm47v4_phone')||'';
+  const el = document.getElementById('saveStatus');
+  if(el) el.textContent = persons.length ? `✓ ${persons.length} record(s) loaded from storage` : 'No saved data yet';
+}
+
+function sendEmail(passport){
+  const p=persons.find(x=>x.passport===passport); if(!p)return;
+  const s=calcStatus(p);
+  const email=localStorage.getItem('tm47v4_email')||'';
+  const subj=encodeURIComponent(`🔔 90-Day Report Reminder — ${p.name}`);
+  const body=encodeURIComponent(
+    `Hi,\n\nThis is a reminder for ${p.name} (Passport: ${p.passport}).\n\n` +
+    `📌 Due date: ${fmt(s.due)}\n` +
+    `🟢 Online window: ${fmt(s.wOpen)} to ${fmt(s.wClose)}\n` +
+    `🔔 Alert date: ${fmt(s.wAlert)}\n\n` +
+    `File online at: https://extranet.immigration.go.th/fn24online/\n\n` +
+    `Days remaining: ${s.daysLeft}\n\nRef: ${p.refNum}`
+  );
+  window.open(`mailto:${email}?subject=${subj}&body=${body}`);
+}
+
+function sendSMS(passport){
+  const p=persons.find(x=>x.passport===passport); if(!p)return;
+  const s=calcStatus(p);
+  const phone=localStorage.getItem('tm47v4_phone')||'';
+  const msg=encodeURIComponent(
+    `TM47 Reminder: ${p.name} (${p.passport}) — Due ${fmt(s.due)}. ` +
+    `File online between ${fmt(s.wOpen)}–${fmt(s.wClose)} at extranet.immigration.go.th`
+  );
+  window.open(`sms:${phone}?body=${msg}`);
+}
+
+function calcStatus(p) {
+  const t=today0();
+  const due=new Date(p.nextDate); due.setHours(0,0,0,0);
+  const lst=new Date(p.lastDate); lst.setHours(0,0,0,0);
+  const daysLeft  = Math.round((due-t)/86400000);
+  const daysSince = Math.round((t-lst)/86400000);
+  const pct       = Math.min(97,Math.max(1,(daysSince/90)*100));
+  const wOpen  = addDays(due,-15);
+  const wClose = addDays(due,-7);
+  const wAlert = addDays(due,-17);
+  let pill,pillCls,cdCls,cdBig,cdSub,barColor;
+  if(daysLeft<0){
+    pill='⚠ Overdue';       pillCls='pill-over';
+    cdCls='cd-over';         cdBig=`${Math.abs(daysLeft)}d overdue`;
+    cdSub='Visit immigration office immediately'; barColor='#FCA5A5,#F87171';
+  }else if(daysLeft<=7){
+    pill='🔴 In-Person Only';pillCls='pill-urgent';
+    cdCls='cd-urgent';       cdBig=`${daysLeft} days left`;
+    cdSub='Online window closed — go in person';  barColor='#FCA5A5,#FCD34D';
+  }else if(daysLeft<=15){
+    pill='✓ File Online Now';pillCls='pill-window';
+    cdCls='cd-window';       cdBig=`${daysLeft} days left`;
+    cdSub=`Window closes ${fmt(wClose)} — file now`; barColor='#6EE7B7,#BFDBFE';
+  }else if(daysLeft<=17){
+    pill='⏰ Window in 2 Days';pillCls='pill-alert';
+    cdCls='cd-alert';         cdBig=`${daysLeft} days left`;
+    cdSub=`Online filing opens ${fmt(wOpen)}`;     barColor='#FDE68A,#FCA5A5';
+  }else{
+    pill='● On Track';       pillCls='pill-ok';
+    cdCls='cd-ok';           cdBig=`${daysLeft} days left`;
+    cdSub=`Next due ${fmt(due)}`; barColor='#BFDBFE,#6EE7B7';
+  }
+  return{daysLeft,daysSince,pct,wOpen,wClose,wAlert,due,lst,pill,pillCls,cdCls,cdBig,cdSub,barColor};
+}
+
+function downloadICS(passport){
+  const p=persons.find(x=>x.passport===passport); if(!p)return;
+  const s=calcStatus(p);
+  const pad=n=>String(n).padStart(2,'0');
+  const icsD=d=>`${new Date(d).getFullYear()}${pad(new Date(d).getMonth()+1)}${pad(new Date(d).getDate())}`;
+  const uid=()=>Math.random().toString(36).slice(2);
+  const ics=[
+'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//TM47 Tracker//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH',
+'BEGIN:VEVENT',`UID:${uid()}@tm47`,
+`DTSTART;VALUE=DATE:${icsD(s.wOpen)}`,`DTEND;VALUE=DATE:${icsD(s.wClose)}`,
+`SUMMARY:✅ File 90-Day Report Online — ${p.name}`,
+`DESCRIPTION:Online filing window for ${p.name} (${p.passport})\\nPortal: https://extranet.immigration.go.th/fn24online/\\nDue: ${fmt(s.due)}`,
+'BEGIN:VALARM','TRIGGER:-P2D','ACTION:DISPLAY',`DESCRIPTION:⏰ Filing window opens in 2 days for ${p.name}!`,'END:VALARM',
+'BEGIN:VALARM','TRIGGER:PT0S','ACTION:DISPLAY', `DESCRIPTION:🟢 File online now for ${p.name}!`,'END:VALARM',
+'END:VEVENT',
+'BEGIN:VEVENT',`UID:${uid()}@tm47`,
+`DTSTART;VALUE=DATE:${icsD(s.due)}`,`DTEND;VALUE=DATE:${icsD(s.due)}`,
+`SUMMARY:📌 90-Day Report DUE — ${p.name}`,
+`DESCRIPTION:${p.name} (${p.passport}) must have reported by today!`,
+'BEGIN:VALARM','TRIGGER:-P7D','ACTION:DISPLAY',`DESCRIPTION:🔴 7 days left to file online for ${p.name}`,'END:VALARM',
+'END:VEVENT','END:VCALENDAR'
+].join('\r\n');
+  const a=Object.assign(document.createElement('a'),{
+    href:URL.createObjectURL(new Blob([ics],{type:'text/calendar;charset=utf-8'})),
+    download:`90day_${p.name.replace(/\s+/g,'_')}_${p.passport}.ics`
+  });
+  a.click();
+}
+
+function toast(type,title,body,ttl=9000){
+  const m={alert:{ico:'🔔',bar:'#D97706'},urgent:{ico:'🚨',bar:'#DC2626'},ok:{ico:'✅',bar:'#059669'}}[type]||{ico:'ℹ',bar:'#2563EB'};
+  const el=document.createElement('div');
+  el.className='toast';
+  el.innerHTML=`<div class="t-bar" style="background:${m.bar}"></div>
+    <div class="t-ico">${m.ico}</div>
+    <div><div class="t-title">${title}</div><div class="t-body">${body}</div></div>
+    <button class="t-x" onclick="this.parentElement.remove()">✕</button>`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>el.remove(),ttl);
+}
+
+function checkAlerts(){
+  for(const p of persons){
+    const s=calcStatus(p);
+    const ds=new Date(p.nextDate).toISOString().slice(0,10);
+    const k17=`${p.passport}-17-${ds}`, k7=`${p.passport}-7-${ds}`;
+    if(s.daysLeft===17&&!alertsFired.has(k17)){
+      toast('alert','Filing window opens in 2 days',`${p.name}: Online window opens ${fmt(s.wOpen)}.`);
+      alertsFired.add(k17); localStorage.setItem(ALERTS_KEY,JSON.stringify([...alertsFired]));
+    }
+    if(s.daysLeft>=0&&s.daysLeft<=7&&!alertsFired.has(k7)){
+      toast('urgent','In-person only — act now',`${p.name}: Online closed. Visit immigration before ${fmt(s.due)}.`);
+      alertsFired.add(k7); localStorage.setItem(ALERTS_KEY,JSON.stringify([...alertsFired]));
+    }
+  }
+}
+
+function renderSidebar(){
+  const el=document.getElementById('loadedList');
+  if(!persons.length){el.innerHTML='';return;}
+  el.innerHTML=`<div class="ll-divider"></div>`+
+    persons.map(p=>{
+      const s=calcStatus(p);
+      const dotColor=s.daysLeft<0?'#DC2626':s.daysLeft<=7?'#DC2626':s.daysLeft<=15?'#059669':'#2563EB';
+      return `<div class="ll-item">
+        <div class="ll-dot" style="background:${dotColor}"></div>
+        <div><div class="ll-name">${p.name}</div><div class="ll-meta">${p.passport} · Due ${fmt(s.due)}</div></div>
+        <span class="ll-ok">✓</span>
+      </div>`;
+    }).join('');
+}
+
+function renderDashboard(){
+  const db=document.getElementById('dashboard');
+  const cw=document.getElementById('clearWrap');
+  if(!persons.length){
+    db.innerHTML=`<div class="empty"><div class="empty-ico">📋</div><h3>No receipts loaded yet</h3><p>Upload your TM47 notification PDFs to see your filing windows and deadlines.</p></div>`;
+    cw.style.display='none'; return;
+  }
+  cw.style.display='block';
+
+  let onTrack=0,fileNow=0,urgent=0,overdue=0;
+  for(const p of persons){const s=calcStatus(p);if(s.daysLeft<0)overdue++;else if(s.daysLeft<=7)urgent++;else if(s.daysLeft<=15)fileNow++;else onTrack++;}
+
+  let html=`<div class="summary">
+    <div class="s-cell"><div class="s-num" style="color:#2563EB">${persons.length}</div><div class="s-lbl">Total</div></div>
+    <div class="s-cell"><div class="s-num" style="color:#059669">${onTrack}</div><div class="s-lbl">On Track</div></div>
+    <div class="s-cell"><div class="s-num" style="color:#D97706">${fileNow}</div><div class="s-lbl">File Now</div></div>
+    <div class="s-cell"><div class="s-num" style="color:#DC2626">${urgent+overdue}</div><div class="s-lbl">Urgent</div></div>
+  </div>`;
+
+  [...persons].sort((a,b)=>new Date(a.nextDate)-new Date(b.nextDate)).forEach((p,i)=>{
+    const s=calcStatus(p);
+    const color=COLORS[i%COLORS.length];
+    const initials=p.name.split(' ').map(w=>w[0]).join('').slice(0,2);
+    const [c1,c2]=s.barColor.split(',');
+
+    const wOpenCls  = s.daysLeft<=15&&s.daysLeft>7?'c-green':s.daysLeft<=17?'c-amber':'';
+    const wCloseCls = s.daysLeft<=7&&s.daysLeft>=0?'c-red':'';
+    const dueCls    = s.daysLeft<=7?'c-red':'';
+
+    const wOpenSub  = s.daysLeft>15?`in ${s.daysLeft-15} days`:s.daysLeft<=15&&s.daysLeft>7?'OPEN NOW':'Passed';
+    const wCloseSub = s.daysLeft>7?`in ${s.daysLeft-7} days`:s.daysLeft>=0?`${s.daysLeft}d left`:'Passed';
+
+    html+=`
+    <div class="p-card">
+      <div class="p-bar" style="background:linear-gradient(90deg,${c1},${c2})"></div>
+
+      <div class="p-head">
+        <div class="avatar" style="background:${color}">${initials}</div>
+        <div style="min-width:0;flex:1">
+          <div class="p-name">${p.name}</div>
+          <div class="p-passport">🛂 ${p.passport}</div>
+        </div>
+        <div class="p-pill-wrap"><span class="pill ${s.pillCls}">${s.pill}</span></div>
+      </div>
+
+      <div class="p-body">
+
+        <div class="cd-banner ${s.cdCls}">
+          <div class="cd-ico">${s.daysLeft<0?'⚠️':s.daysLeft<=7?'🔴':s.daysLeft<=15?'✅':'📅'}</div>
+          <div>
+            <div class="cd-big">${s.cdBig}</div>
+            <div class="cd-sub">${s.cdSub}</div>
+          </div>
+        </div>
+
+        <div class="tl-wrap">
+          <div class="tl-labels">
+            <span>${fmt(s.lst)}</span>
+            <span>Day ${Math.min(90,s.daysSince)}/90</span>
+            <span>${fmt(s.due)}</span>
+          </div>
+          <div class="tl-track">
+            <div class="tl-zones"><div class="z-s"></div><div class="z-w"></div><div class="z-l"></div></div>
+            <div class="tl-pin" style="left:${s.pct}%"></div>
+          </div>
+          <div style="height:20px"></div>
+        </div>
+
+        <div class="dates-grid">
+          <div class="d-chip ${wOpenCls}">
+            <div class="dc-lbl">🟢 Window Opens</div>
+            <div class="dc-val">${fmt(s.wOpen)}</div>
+            <div class="dc-sub">${wOpenSub}</div>
+          </div>
+          <div class="d-chip ${wCloseCls}">
+            <div class="dc-lbl">🔴 Closes</div>
+            <div class="dc-val">${fmt(s.wClose)}</div>
+            <div class="dc-sub">${wCloseSub}</div>
+          </div>
+          <div class="d-chip c-amber">
+            <div class="dc-lbl">🔔 Alert</div>
+            <div class="dc-val">${fmt(s.wAlert)}</div>
+            <div class="dc-sub">17d before due</div>
+          </div>
+          <div class="d-chip ${dueCls}">
+            <div class="dc-lbl">📌 Due</div>
+            <div class="dc-val">${fmt(s.due)}</div>
+            <div class="dc-sub">${s.daysLeft<0?'OVERDUE':s.daysLeft+'d left'}</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="p-foot">
+        <a class="portal-link" href="https://extranet.immigration.go.th/fn24online/" target="_blank">File ↗</a>
+        <div class="p-foot-actions">
+          <button class="btn btn-purple" title="Add to calendar" onclick="downloadICS('${p.passport}')">📅</button>
+          <button class="btn btn-green"  title="Send email reminder" onclick="sendEmail('${p.passport}')">📧</button>
+          <button class="btn btn-blue"   title="Send SMS reminder" onclick="sendSMS('${p.passport}')">📱</button>
+          <button class="btn btn-ghost"  onclick="removePerson('${p.passport}')">✕</button>
+        </div>
+      </div>
+    </div>`;
+  });
+  db.innerHTML=html;
+}
+
+function render(){renderDashboard();renderSidebar();}
+function removePerson(pp){persons=persons.filter(x=>x.passport!==pp);save();render();}
+function clearAll(){if(!confirm('Remove all records?'))return;persons=[];save();render();}
+
+function save(){
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(persons));
+    const ts = new Date().toLocaleTimeString('en-GB',{timeZone:'Asia/Bangkok',hour12:false});
+    const el = document.getElementById('saveStatus');
+    if(el){ el.textContent=`✓ Saved at ${ts} BKK`; el.style.color='var(--green)'; }
+  } catch(e) {
+    const el = document.getElementById('saveStatus');
+    if(el){ el.textContent='⚠ Storage full — use backup'; el.style.color='var(--red)'; }
+  }
+}
+
+function exportBackup(){
+  const data = { persons, exported: new Date().toISOString(), app:'TM47-Tracker' };
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a = Object.assign(document.createElement('a'),{
+    href: URL.createObjectURL(blob),
+    download: `tm47_backup_${new Date().toISOString().slice(0,10)}.json`
+  });
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('ok','Backup saved',`tm47_backup_${new Date().toISOString().slice(0,10)}.json downloaded.`);
+}
+
+function importBackup(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(!data.persons || !Array.isArray(data.persons)) throw new Error('Invalid backup file');
+      if(!confirm(`Import ${data.persons.length} record(s)? This will merge with existing records.`)) return;
+      for(const rec of data.persons){
+        const idx=persons.findIndex(x=>x.passport===rec.passport);
+        if(idx>=0) persons[idx]=rec; else persons.push(rec);
+      }
+      save(); render(); checkAlerts();
+      toast('ok','Backup restored',`${data.persons.length} record(s) loaded.`);
+    } catch(err){
+      toast('alert','Import failed',err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function processFiles(files){
+  document.getElementById('procRow').style.display='flex';
+  for(const file of files){
+    if(!file.name.toLowerCase().endsWith('.pdf'))continue;
+    try{
+      const text=await pdfToText(file);
+      const data=parseTm47(text);
+      if(!data.name||!data.nextDate){toast('alert','Could not parse',`${file.name} — is this a valid TM47 receipt?`);continue;}
+      const rec={name:data.name,passport:data.passport,
+        lastDate:(data.lastDate||addDays(data.nextDate,-90)).toISOString(),
+        nextDate:data.nextDate.toISOString(),refNum:data.refNum,file:file.name};
+      const idx=persons.findIndex(x=>x.passport===rec.passport);
+      if(idx>=0)persons[idx]=rec;else persons.push(rec);
+      toast('ok','Receipt loaded',`${rec.name} · Due ${fmt(data.nextDate)}`);
+    }catch(e){toast('alert','Error',`${file.name}: ${e.message}`);}
+  }
+  document.getElementById('procRow').style.display='none';
+  save();render();checkAlerts();
+}
+
+const dz=document.getElementById('dropZone');
+const fi=document.getElementById('fileInput');
+fi.addEventListener('change',e=>{processFiles([...e.target.files]);fi.value='';});
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');processFiles([...e.dataTransfer.files]);});
+
+function updateClock(){
+  document.getElementById('clockTime').textContent=
+    new Date().toLocaleTimeString('en-GB',{timeZone:'Asia/Bangkok',hour12:false});
+}
+setInterval(updateClock,1000); updateClock();
+setInterval(()=>{render();checkAlerts();},60000);
+loadSettings(); render(); checkAlerts();
+</script>
+</body>
+</html>
