@@ -547,21 +547,35 @@ body {
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// ── Stable key — no version suffix so browser-reloads never lose data ──
 const STORE_KEY  = 'tm47_data';
 const ALERTS_KEY = 'tm47_alerts';
 
-// Migrate from any old versioned keys
-(function migrate(){
+// ── Load: URL hash (#d=…) → localStorage → empty ──────────────────
+// URL hash means ANY device that opens the link gets the data.
+function loadPersons() {
+  // 1. URL hash — works cross-device, cross-browser, no server needed
+  try {
+    const hash = window.location.hash;
+    if (hash.startsWith('#d=')) {
+      const decoded = JSON.parse(atob(decodeURIComponent(hash.slice(3))));
+      if (Array.isArray(decoded) && decoded.length) {
+        localStorage.setItem(STORE_KEY, JSON.stringify(decoded)); // cache locally too
+        return decoded;
+      }
+    }
+  } catch(e) {}
+  // 2. Migrate old versioned keys
   for (const old of ['tm47v4_persons','tm47v3_persons','tm47v2_persons']) {
     const v = localStorage.getItem(old);
     if (v && !localStorage.getItem(STORE_KEY)) {
       localStorage.setItem(STORE_KEY, v); localStorage.removeItem(old);
     }
   }
-})();
+  // 3. localStorage (same browser, same device)
+  return JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+}
 
-let persons     = JSON.parse(localStorage.getItem(STORE_KEY)  || '[]');
+let persons     = loadPersons();
 let alertsFired = new Set(JSON.parse(localStorage.getItem(ALERTS_KEY) || '[]'));
 
 const COLORS = ['#2563EB','#C8102E','#059669','#D97706','#7C3AED','#0891B2','#EA580C'];
@@ -635,7 +649,17 @@ function loadSettings(){
   document.getElementById('settingEmail').value = localStorage.getItem('tm47v4_email')||'';
   document.getElementById('settingPhone').value = localStorage.getItem('tm47v4_phone')||'';
   const el = document.getElementById('saveStatus');
-  if(el) el.textContent = persons.length ? `✓ ${persons.length} record(s) loaded from storage` : 'No saved data yet';
+  if(el){
+    if(persons.length){
+      const src = window.location.hash.startsWith('#d=') ? 'from shared link' : 'from local storage';
+      el.textContent = `✓ ${persons.length} record(s) loaded (${src})`;
+      el.style.color = 'var(--green)';
+    } else {
+      el.textContent = 'No data yet — upload a receipt';
+      el.style.color = 'var(--text-3)';
+    }
+  }
+  updateShareUrl();
 }
 
 function sendEmail(passport){
@@ -884,15 +908,35 @@ function removePerson(pp){persons=persons.filter(x=>x.passport!==pp);save();rend
 function clearAll(){if(!confirm('Remove all records?'))return;persons=[];save();render();}
 
 function save(){
+  // 1. localStorage (fast, same device)
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(persons)); } catch(e){}
+  // 2. URL hash (cross-device — anyone with this URL sees the same data)
   try {
-    localStorage.setItem(STORE_KEY, JSON.stringify(persons));
-    const ts = new Date().toLocaleTimeString('en-GB',{timeZone:'Asia/Bangkok',hour12:false});
-    const el = document.getElementById('saveStatus');
-    if(el){ el.textContent=`✓ Saved at ${ts} BKK`; el.style.color='var(--green)'; }
-  } catch(e) {
-    const el = document.getElementById('saveStatus');
-    if(el){ el.textContent='⚠ Storage full — use backup'; el.style.color='var(--red)'; }
-  }
+    const encoded = encodeURIComponent(btoa(JSON.stringify(persons)));
+    history.replaceState(null, '', persons.length ? '#d=' + encoded : ' ');
+  } catch(e){}
+  // 3. Update status + share URL field
+  const ts = new Date().toLocaleTimeString('en-GB',{timeZone:'Asia/Bangkok',hour12:false});
+  const el = document.getElementById('saveStatus');
+  if(el){ el.textContent=`✓ Saved · ${persons.length} record(s) · ${ts} BKK`; el.style.color='var(--green)'; }
+  updateShareUrl();
+}
+
+function updateShareUrl(){
+  const inp = document.getElementById('shareUrlInput');
+  if(!inp) return;
+  inp.value = persons.length ? window.location.href : '(no data yet)';
+}
+
+function copyShareUrl(){
+  const inp = document.getElementById('shareUrlInput');
+  if(!inp || !persons.length){ toast('alert','Nothing to share','Upload at least one receipt first.'); return; }
+  navigator.clipboard.writeText(inp.value).then(()=>{
+    toast('ok','Link copied!','Paste it in any browser on any device to load your data.');
+  }).catch(()=>{
+    inp.select(); document.execCommand('copy');
+    toast('ok','Link copied!','Paste it in any browser on any device to load your data.');
+  });
 }
 
 function exportBackup(){
